@@ -1,157 +1,4 @@
-<!DOCTYPE html>
-<html lang="ko">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>AI 영양 기록장</title>
-    <style>
-        :root { --primary: #4CAF50; --bg: #f8f9fa; --text: #333; --card-bg: #ffffff; }
-        
-        body { 
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            margin: 0; padding: 15px; background: var(--bg); color: var(--text);
-            -webkit-tap-highlight-color: transparent;
-        }
-        h1 { text-align: center; font-size: 1.5rem; margin-bottom: 20px; color: #2c3e50; }
-        
-        .card { 
-            background: var(--card-bg); padding: 20px; border-radius: 16px; 
-            box-shadow: 0 4px 12px rgba(0,0,0,0.05); margin-bottom: 20px; 
-        }
-        
-        label { display: block; margin-top: 12px; font-weight: 600; font-size: 0.9rem; color: #555; }
-        input[type="text"], input[type="number"], input[type="password"], input[type="date"] { 
-            width: 100%; padding: 12px; margin-top: 6px; 
-            border: 1px solid #e0e0e0; border-radius: 8px; 
-            font-size: 16px; box-sizing: border-box; background: #fafafa;
-        }
-        input:focus { border-color: var(--primary); outline: none; background: #fff; }
-
-        .file-upload-wrapper {
-            position: relative; margin-top: 10px; border: 2px dashed #ccc;
-            border-radius: 12px; padding: 20px; text-align: center; cursor: pointer;
-            transition: all 0.2s; background: #fff;
-        }
-        .file-upload-wrapper:active { background: #f0f0f0; border-color: var(--primary); }
-        .file-upload-wrapper input {
-            position: absolute; top: 0; left: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer;
-        }
-        
-        .btn { 
-            width: 100%; padding: 14px; background: var(--primary); color: white; 
-            border: none; border-radius: 10px; font-size: 1rem; font-weight: bold;
-            cursor: pointer; margin-top: 20px; box-shadow: 0 2px 6px rgba(76, 175, 80, 0.3);
-        }
-        .btn:active { transform: scale(0.98); }
-        .btn-secondary { background: #7f8c8d; box-shadow: none; }
-        .btn-danger { background: #ff6b6b; box-shadow: none; margin-top:0; width:auto; padding: 8px 12px; font-size: 0.9rem;}
-        
-        /* 리스트 스타일 */
-        .food-item { 
-            background: #fff; border: 1px solid #eee; border-radius: 12px; 
-            padding: 15px; margin-bottom: 10px; 
-        }
-        .food-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; }
-        .food-name { font-size: 1.1rem; font-weight: bold; }
-        .food-kcal { font-weight: bold; color: var(--primary); }
-        .food-detail { font-size: 0.85rem; color: #666; line-height: 1.4; }
-        .delete-btn {
-            padding: 5px 10px; background: #ffeaea; color: #ff4d4d; 
-            border: none; border-radius: 6px; font-size: 0.8rem; margin-left: 10px; cursor: pointer;
-        }
-
-        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-        
-        .loader { display: none; text-align: center; margin: 15px 0; color: var(--primary); font-weight: bold; }
-        .hidden { display: none; }
-        
-        /* 통계 테이블 스타일 */
-        .stats-table-wrapper { overflow-x: auto; margin-top: 15px; }
-        .stats-table { width: 100%; border-collapse: collapse; font-size: 0.9rem; white-space: nowrap; }
-        .stats-table th { background: #f1f1f1; padding: 10px; text-align: center; border-bottom: 2px solid #ddd; }
-        .stats-table td { padding: 10px; text-align: center; border-bottom: 1px solid #eee; }
-        .stats-table tr:last-child td { border-bottom: none; }
-        .stat-highlight { font-weight: bold; color: var(--primary); }
-    </style>
-</head>
-<body>
-
-    <h1>🥗 나의 영양 기록장</h1>
-
-    <div class="card" id="apiKeyCard">
-        <label>🔑 Gemini API Key 입력</label>
-        <input type="password" id="apiKey" placeholder="AI Studio 키 붙여넣기">
-        <button class="btn" onclick="saveApiKey()">키 저장하고 시작하기</button>
-    </div>
-    
-    <div id="apiKeyStatus" class="card hidden" style="background: #e8f5e9; border: 1px solid #c8e6c9;">
-        <div style="display:flex; justify-content:space-between; align-items:center;">
-            <span style="color:#2e7d32; font-weight:bold;">✅ API 키 연동됨</span>
-            <button onclick="resetApiKey()" style="background:none; border:none; text-decoration:underline; color:#666;">변경</button>
-        </div>
-    </div>
-
-    <div class="card">
-        <h3 style="margin-top:0;">📅 기간별 영양 분석</h3>
-        <label>조회 기간 선택</label>
-        <div class="grid-2">
-            <input type="date" id="startDate">
-            <input type="date" id="endDate">
-        </div>
-        <button class="btn btn-secondary" onclick="calculateStats()" style="margin-top:15px;">조회하기</button>
-        
-        <div id="statsResult" class="hidden">
-            <div class="stats-table-wrapper">
-                <table class="stats-table">
-                    <thead>
-                        <tr>
-                            <th>날짜</th>
-                            <th>칼로리</th>
-                            <th>탄수</th>
-                            <th>단백</th>
-                            <th>지방</th>
-                        </tr>
-                    </thead>
-                    <tbody id="statsBody">
-                        </tbody>
-                </table>
-            </div>
-        </div>
-    </div>
-
-    <div class="card">
-        <h3 style="margin-top:0;">📝 음식 추가</h3>
-        <div class="file-upload-wrapper">
-            <span>📸 사진 촬영/업로드</span>
-            <input type="file" id="imageInput" accept="image/*">
-        </div>
-        <div id="ocrLoader" class="loader">🔄 분석 중...</div>
-
-        <label>제품명</label>
-        <input type="text" id="foodName" placeholder="예: 편의점 햄버거">
-        <label>날짜 (수동 변경 가능)</label>
-        <input type="date" id="entryDate">
-
-        <div class="grid-2">
-            <div><label>칼로리 (kcal)</label><input type="number" id="kcal" inputmode="numeric"></div>
-            <div><label>나트륨 (mg)</label><input type="number" id="sodium" inputmode="numeric"></div>
-            <div><label>탄수화물 (g)</label><input type="number" id="carbo" inputmode="numeric"></div>
-            <div><label>당류 (g)</label><input type="number" id="sugar" inputmode="numeric"></div>
-            <div><label>지방 (g)</label><input type="number" id="fat" inputmode="numeric"></div>
-            <div><label>단백질 (g)</label><input type="number" id="protein" inputmode="numeric"></div>
-        </div>
-        <button class="btn" onclick="addFood()">기록 저장</button>
-    </div>
-
-    <div class="card">
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
-            <h3 style="margin:0;">최근 기록</h3>
-            <button class="btn btn-danger" onclick="clearAll()">전체 삭제</button>
-        </div>
-        <div id="foodList"></div>
-    </div>
-
-    <script>
+<script>
         // --- 유틸리티: 날짜 포맷 (YYYY-MM-DD) ---
         function getTodayStr() {
             return new Date().toISOString().split('T')[0];
@@ -184,47 +31,118 @@
             document.getElementById('apiKeyStatus').classList.add('hidden');
         }
 
-        // --- Gemini OCR ---
-        async function analyzeImage(base64Image) {
-            const apiKey = localStorage.getItem('geminiApiKey');
-            if (!apiKey) { alert("API 키가 없습니다."); return; }
-            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
-            const prompt = `Extract nutrition facts (Korean labels). Return JSON: foodName(string), kcal, sodium, carbo, sugar, fat, protein (numbers). Remove units.`;
-            const requestBody = {
-                contents: [{ parts: [{ text: prompt }, { inline_data: { mime_type: "image/jpeg", data: base64Image } }] }]
-            };
+        // --- 이미지 압축 및 Gemini 전송 (핵심 수정 부분) ---
+        async function handleImageUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            document.getElementById('ocrLoader').style.display = 'block';
+            document.getElementById('ocrLoader').innerText = "🔄 이미지 압축 및 분석 중...";
+
             try {
-                document.getElementById('ocrLoader').style.display = 'block';
-                const response = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(requestBody) });
-                const data = await response.json();
-                const text = data.candidates[0].content.parts[0].text;
-                const result = JSON.parse(text.replace(/```json|```/g, '').trim());
-                fillForm(result);
-            } catch (e) { alert("분석 실패. 다시 시도해주세요."); } finally { document.getElementById('ocrLoader').style.display = 'none'; }
+                // 1. 이미지 압축 (Promise 기반)
+                const compressedBase64 = await compressImage(file);
+                
+                // 2. Gemini 분석 요청
+                await analyzeImage(compressedBase64);
+            } catch (error) {
+                console.error(error);
+                alert("오류 발생: " + error.message);
+                document.getElementById('ocrLoader').style.display = 'none';
+            }
         }
 
-        document.getElementById('imageInput').addEventListener('change', function(e) {
-            const file = e.target.files[0];
-            if (!file) return;
-            const reader = new FileReader();
-            reader.onloadend = () => analyzeImage(reader.result.split(',')[1]);
-            reader.readAsDataURL(file);
-        });
+        // 이미지 리사이징 함수 (최대 폭 1024px, JPEG 0.7 퀄리티)
+        function compressImage(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.readAsDataURL(file);
+                reader.onload = (event) => {
+                    const img = new Image();
+                    img.src = event.target.result;
+                    img.onload = () => {
+                        const canvas = document.createElement('canvas');
+                        const maxWidth = 1024; // 최대 너비 제한
+                        let width = img.width;
+                        let height = img.height;
+
+                        if (width > maxWidth) {
+                            height *= maxWidth / width;
+                            width = maxWidth;
+                        }
+
+                        canvas.width = width;
+                        canvas.height = height;
+                        const ctx = canvas.getContext('2d');
+                        ctx.drawImage(img, 0, 0, width, height);
+                        
+                        // JPEG 포맷, 품질 0.7로 변환 후 헤더 제거
+                        const dataUrl = canvas.toDataURL('image/jpeg', 0.7);
+                        resolve(dataUrl.split(',')[1]);
+                    };
+                    img.onerror = (err) => reject(new Error("이미지 파일 로드 실패"));
+                };
+                reader.onerror = (err) => reject(new Error("파일 읽기 실패"));
+            });
+        }
+
+        async function analyzeImage(base64Image) {
+            const apiKey = localStorage.getItem('geminiApiKey');
+            if (!apiKey) throw new Error("API 키가 설정되지 않았습니다.");
+
+            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+            
+            const prompt = `
+                Analyze the nutrition facts image (Korean). 
+                Extract: foodName(string), kcal, sodium, carbo, sugar, fat, protein.
+                Return ONLY JSON. Values should be numbers (remove 'g', 'mg', 'kcal').
+                If a value is not found, use 0.
+            `;
+
+            const requestBody = {
+                contents: [{
+                    parts: [
+                        { text: prompt },
+                        { inline_data: { mime_type: "image/jpeg", data: base64Image } }
+                    ]
+                }]
+            };
+
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(requestBody)
+            });
+
+            if (!response.ok) {
+                const errData = await response.json();
+                throw new Error(errData.error?.message || "API 호출 실패");
+            }
+
+            const data = await response.json();
+            const text = data.candidates[0].content.parts[0].text;
+            const result = JSON.parse(text.replace(/```json|```/g, '').trim());
+            
+            fillForm(result);
+            document.getElementById('ocrLoader').style.display = 'none';
+        }
+
+        // 이벤트 리스너 연결
+        document.getElementById('imageInput').addEventListener('change', handleImageUpload);
 
         function fillForm(data) {
             if(data.foodName && data.foodName !== 'Unknown') document.getElementById('foodName').value = data.foodName;
             ['kcal','sodium','carbo','sugar','fat','protein'].forEach(k => document.getElementById(k).value = data[k] || 0);
         }
 
-        // --- 데이터 관리 (수정됨) ---
+        // --- 데이터 관리 ---
         function addFood() {
             const getVal = (id) => Number(document.getElementById(id).value) || 0;
-            // 중요: 입력된 날짜를 가져옴 (기본값은 오늘)
             const dateStr = document.getElementById('entryDate').value || getTodayStr();
 
             const food = {
                 id: Date.now(),
-                dateStr: dateStr, // YYYY-MM-DD 형태로 저장 (정렬/필터링용)
+                dateStr: dateStr, 
                 name: document.getElementById('foodName').value || '이름 없음',
                 kcal: getVal('kcal'), sodium: getVal('sodium'), carbo: getVal('carbo'),
                 sugar: getVal('sugar'), fat: getVal('fat'), protein: getVal('protein')
@@ -235,33 +153,24 @@
             localStorage.setItem('foodLog', JSON.stringify(foods));
             
             renderList();
-            calculateStats(); // 통계 갱신
+            calculateStats();
             
-            // 폼 초기화 (날짜는 유지)
             document.getElementById('foodName').value = '';
             document.querySelectorAll('.grid-2 input').forEach(i => i.value = '');
         }
 
-        // --- 통계 계산 기능 (신규) ---
+        // --- 통계 및 리스트 (이전과 동일) ---
         function calculateStats() {
             const foods = JSON.parse(localStorage.getItem('foodLog')) || [];
             const startDate = document.getElementById('startDate').value;
             const endDate = document.getElementById('endDate').value;
-
             if (!startDate || !endDate) return;
 
-            // 1. 날짜별 그룹화 데이터를 저장할 객체
             const dailyStats = {};
-
-            // 2. 기간 필터링 및 합계 계산
             foods.forEach(food => {
-                // dateStr이 없는 옛날 데이터 호환성 처리
                 const fDate = food.dateStr || new Date(food.id).toISOString().split('T')[0];
-                
                 if (fDate >= startDate && fDate <= endDate) {
-                    if (!dailyStats[fDate]) {
-                        dailyStats[fDate] = { kcal: 0, carbo: 0, protein: 0, fat: 0 };
-                    }
+                    if (!dailyStats[fDate]) dailyStats[fDate] = { kcal: 0, carbo: 0, protein: 0, fat: 0 };
                     dailyStats[fDate].kcal += food.kcal;
                     dailyStats[fDate].carbo += food.carbo;
                     dailyStats[fDate].protein += food.protein;
@@ -269,52 +178,34 @@
                 }
             });
 
-            // 3. 테이블 렌더링
             const tbody = document.getElementById('statsBody');
             tbody.innerHTML = '';
-            
-            // 날짜순 정렬 (오름차순)
             const sortedDates = Object.keys(dailyStats).sort();
 
             if (sortedDates.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="5">해당 기간의 기록이 없습니다.</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="5">기록 없음</td></tr>';
             } else {
                 sortedDates.forEach(date => {
                     const stat = dailyStats[date];
                     const tr = document.createElement('tr');
-                    tr.innerHTML = `
-                        <td>${date.substring(5)}</td> <td class="stat-highlight">${stat.kcal}</td>
-                        <td>${stat.carbo}g</td>
-                        <td>${stat.protein}g</td>
-                        <td>${stat.fat}g</td>
-                    `;
+                    tr.innerHTML = `<td>${date.substring(5)}</td><td class="stat-highlight">${stat.kcal}</td><td>${stat.carbo}</td><td>${stat.protein}</td><td>${stat.fat}</td>`;
                     tbody.appendChild(tr);
                 });
             }
             document.getElementById('statsResult').classList.remove('hidden');
         }
 
-        // --- 리스트 렌더링 ---
         function renderList() {
             const foods = JSON.parse(localStorage.getItem('foodLog')) || [];
             const list = document.getElementById('foodList');
             list.innerHTML = '';
-
-            // 최근 기록 10개만 보여주기 (너무 길어지는 것 방지)
             foods.slice().reverse().slice(0, 10).forEach(f => {
                 const displayDate = f.dateStr || '날짜 없음';
                 const div = document.createElement('div');
                 div.className = 'food-item';
                 div.innerHTML = `
-                    <div class="food-header">
-                        <span class="food-name">${f.name}</span>
-                        <span style="font-size:0.8rem; color:#888;">${displayDate}</span>
-                    </div>
-                    <div class="food-detail">
-                        <span class="food-kcal">${f.kcal} kcal</span> | 
-                        탄 ${f.carbo} · 단 ${f.protein} · 지 ${f.fat}
-                        <button class="delete-btn" onclick="deleteFood(${f.id})">삭제</button>
-                    </div>
+                    <div class="food-header"><span class="food-name">${f.name}</span><span style="font-size:0.8rem; color:#888;">${displayDate}</span></div>
+                    <div class="food-detail"><span class="food-kcal">${f.kcal} kcal</span> | 탄 ${f.carbo} · 단 ${f.protein} · 지 ${f.fat} <button class="delete-btn" onclick="deleteFood(${f.id})">삭제</button></div>
                 `;
                 list.appendChild(div);
             });
@@ -329,17 +220,14 @@
         }
 
         function clearAll() {
-            if(confirm('모든 기록을 삭제할까요?')) {
+            if(confirm('모든 기록 삭제?')) {
                 localStorage.removeItem('foodLog');
                 renderList();
                 calculateStats();
             }
         }
 
-        // 앱 시작 시 실행
         loadApiKey();
         renderList();
-        calculateStats(); // 오늘 날짜 기준으로 통계 한 번 보여주기
+        calculateStats();
     </script>
-</body>
-</html>
