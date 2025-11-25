@@ -1,4 +1,153 @@
-<script>
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>AI 영양 기록장</title>
+    <style>
+        :root { --primary: #4CAF50; --bg: #f8f9fa; --text: #333; --card-bg: #ffffff; }
+        
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            margin: 0; padding: 15px; background: var(--bg); color: var(--text);
+            -webkit-tap-highlight-color: transparent;
+        }
+        h1 { text-align: center; font-size: 1.5rem; margin-bottom: 20px; color: #2c3e50; }
+        
+        .card { 
+            background: var(--card-bg); padding: 20px; border-radius: 16px; 
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05); margin-bottom: 20px; 
+        }
+        
+        label { display: block; margin-top: 12px; font-weight: 600; font-size: 0.9rem; color: #555; }
+        input[type="text"], input[type="number"], input[type="password"], input[type="date"] { 
+            width: 100%; padding: 12px; margin-top: 6px; 
+            border: 1px solid #e0e0e0; border-radius: 8px; 
+            font-size: 16px; box-sizing: border-box; background: #fafafa;
+        }
+        input:focus { border-color: var(--primary); outline: none; background: #fff; }
+
+        .file-upload-wrapper {
+            position: relative; margin-top: 10px; border: 2px dashed #ccc;
+            border-radius: 12px; padding: 20px; text-align: center; cursor: pointer;
+            transition: all 0.2s; background: #fff;
+        }
+        .file-upload-wrapper:active { background: #f0f0f0; border-color: var(--primary); }
+        .file-upload-wrapper input {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer;
+        }
+        
+        .btn { 
+            width: 100%; padding: 14px; background: var(--primary); color: white; 
+            border: none; border-radius: 10px; font-size: 1rem; font-weight: bold;
+            cursor: pointer; margin-top: 20px; box-shadow: 0 2px 6px rgba(76, 175, 80, 0.3);
+        }
+        .btn:active { transform: scale(0.98); }
+        .btn-secondary { background: #7f8c8d; box-shadow: none; }
+        .btn-danger { background: #ff6b6b; box-shadow: none; margin-top:0; width:auto; padding: 8px 12px; font-size: 0.9rem;}
+        
+        /* 리스트 및 테이블 스타일 */
+        .food-item { 
+            background: #fff; border: 1px solid #eee; border-radius: 12px; 
+            padding: 15px; margin-bottom: 10px; 
+        }
+        .food-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; }
+        .food-name { font-size: 1.1rem; font-weight: bold; }
+        .food-detail { font-size: 0.85rem; color: #666; line-height: 1.4; }
+        .delete-btn {
+            padding: 5px 10px; background: #ffeaea; color: #ff4d4d; 
+            border: none; border-radius: 6px; font-size: 0.8rem; margin-left: 10px; cursor: pointer;
+        }
+
+        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+        
+        .loader { display: none; text-align: center; margin: 15px 0; color: var(--primary); font-weight: bold; }
+        .hidden { display: none; }
+        
+        .stats-table-wrapper { overflow-x: auto; margin-top: 15px; }
+        .stats-table { width: 100%; border-collapse: collapse; font-size: 0.9rem; white-space: nowrap; }
+        .stats-table th { background: #f1f1f1; padding: 10px; text-align: center; border-bottom: 2px solid #ddd; }
+        .stats-table td { padding: 10px; text-align: center; border-bottom: 1px solid #eee; }
+        .stat-highlight { font-weight: bold; color: var(--primary); }
+    </style>
+</head>
+<body>
+
+    <h1>🥗 나의 영양 기록장</h1>
+
+    <div class="card" id="apiKeyCard">
+        <label>🔑 Gemini API Key 입력</label>
+        <input type="password" id="apiKey" placeholder="AI Studio 키 붙여넣기">
+        <button class="btn" onclick="saveApiKey()">키 저장하고 시작하기</button>
+    </div>
+    
+    <div id="apiKeyStatus" class="card hidden" style="background: #e8f5e9; border: 1px solid #c8e6c9;">
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+            <span style="color:#2e7d32; font-weight:bold;">✅ API 키 연동됨</span>
+            <button onclick="resetApiKey()" style="background:none; border:none; text-decoration:underline; color:#666;">변경</button>
+        </div>
+    </div>
+
+    <div class="card">
+        <h3 style="margin-top:0;">📅 기간별 영양 분석</h3>
+        <label>조회 기간 선택</label>
+        <div class="grid-2">
+            <input type="date" id="startDate">
+            <input type="date" id="endDate">
+        </div>
+        <button class="btn btn-secondary" onclick="calculateStats()" style="margin-top:15px;">조회하기</button>
+        
+        <div id="statsResult" class="hidden">
+            <div class="stats-table-wrapper">
+                <table class="stats-table">
+                    <thead>
+                        <tr>
+                            <th>날짜</th>
+                            <th>칼로리</th>
+                            <th>탄수</th>
+                            <th>단백</th>
+                            <th>지방</th>
+                        </tr>
+                    </thead>
+                    <tbody id="statsBody"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="card">
+        <h3 style="margin-top:0;">📝 음식 추가</h3>
+        <div class="file-upload-wrapper">
+            <span>📸 사진 촬영/업로드</span>
+            <input type="file" id="imageInput" accept="image/*">
+        </div>
+        <div id="ocrLoader" class="loader">🔄 분석 중...</div>
+
+        <label>제품명</label>
+        <input type="text" id="foodName" placeholder="예: 편의점 햄버거">
+        <label>날짜 (수동 변경 가능)</label>
+        <input type="date" id="entryDate">
+
+        <div class="grid-2">
+            <div><label>칼로리 (kcal)</label><input type="number" id="kcal" inputmode="numeric"></div>
+            <div><label>나트륨 (mg)</label><input type="number" id="sodium" inputmode="numeric"></div>
+            <div><label>탄수화물 (g)</label><input type="number" id="carbo" inputmode="numeric"></div>
+            <div><label>당류 (g)</label><input type="number" id="sugar" inputmode="numeric"></div>
+            <div><label>지방 (g)</label><input type="number" id="fat" inputmode="numeric"></div>
+            <div><label>단백질 (g)</label><input type="number" id="protein" inputmode="numeric"></div>
+        </div>
+        <button class="btn" onclick="addFood()">기록 저장</button>
+    </div>
+
+    <div class="card">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+            <h3 style="margin:0;">최근 기록</h3>
+            <button class="btn btn-danger" onclick="clearAll()">전체 삭제</button>
+        </div>
+        <div id="foodList"></div>
+    </div>
+
+    <script>
         // --- 1. 기본 설정 및 날짜 ---
         function getTodayStr() { return new Date().toISOString().split('T')[0]; }
         document.getElementById('entryDate').value = getTodayStr();
@@ -27,18 +176,17 @@
             document.getElementById('apiKeyStatus').classList.add('hidden');
         }
 
-        // --- 3. 이미지 압축 및 분석 (429 에러 해결용 수정) ---
+        // --- 3. 이미지 압축 및 분석 (429 에러 방지용) ---
         async function handleImageUpload(event) {
             const file = event.target.files[0];
             if (!file) return;
 
-            // 로딩 표시 및 입력 막기
             const loader = document.getElementById('ocrLoader');
             loader.style.display = 'block';
-            loader.innerText = "🔄 용량 줄이는 중...";
+            loader.innerText = "🔄 용량 최적화 중...";
 
             try {
-                // 압축 실행
+                // 이미지 압축 (Promise)
                 const compressedBase64 = await compressImage(file);
                 
                 loader.innerText = "🤖 Gemini 분석 중...";
@@ -46,14 +194,11 @@
             } catch (error) {
                 alert("실패: " + error.message);
             } finally {
-                // 로딩 끝
                 loader.style.display = 'none';
-                // 같은 파일 다시 선택 가능하게 초기화
-                event.target.value = ''; 
+                event.target.value = ''; // 파일 초기화
             }
         }
 
-        // 더 강력한 이미지 압축 함수
         function compressImage(file) {
             return new Promise((resolve, reject) => {
                 const reader = new FileReader();
@@ -63,7 +208,7 @@
                     img.src = event.target.result;
                     img.onload = () => {
                         const canvas = document.createElement('canvas');
-                        // 429 에러 방지를 위해 해상도를 700px로 낮춤
+                        // 429 에러 방지를 위해 해상도를 700px로 제한
                         const maxWidth = 700; 
                         let width = img.width; 
                         let height = img.height;
@@ -78,7 +223,7 @@
                         const ctx = canvas.getContext('2d');
                         ctx.drawImage(img, 0, 0, width, height);
                         
-                        // 화질을 0.5(50%)로 낮춰서 토큰 소모 최소화
+                        // 화질 0.5(50%)로 압축
                         resolve(canvas.toDataURL('image/jpeg', 0.5).split(',')[1]);
                     };
                     img.onerror = () => reject(new Error("이미지 로드 실패"));
@@ -93,7 +238,7 @@
             
             const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
             
-            const prompt = `Extract nutrition facts (Korean). Return JSON ONLY: foodName, kcal, sodium, carbo, sugar, fat, protein (numbers).`;
+            const prompt = `Extract nutrition facts (Korean labels). Return JSON ONLY: foodName, kcal, sodium, carbo, sugar, fat, protein (all numbers).`;
             
             const requestBody = { 
                 contents: [{ parts: [{ text: prompt }, { inline_data: { mime_type: "image/jpeg", data: base64Image } }] }] 
@@ -107,19 +252,14 @@
 
             if (!response.ok) {
                 const errorData = await response.json().catch(() => ({}));
-                // 에러 메시지 상세 확인
                 let msg = "서버 오류";
                 if (response.status === 429) msg = "요청 한도 초과 (429). 1분 뒤에 다시 시도하세요.";
                 else if (errorData.error && errorData.error.message) msg = errorData.error.message;
-                
                 throw new Error(msg);
             }
             
             const data = await response.json();
-            
-            if(!data.candidates || data.candidates.length === 0) {
-                 throw new Error("AI가 아무것도 읽지 못했습니다. 사진을 다시 찍어주세요.");
-            }
+            if(!data.candidates || data.candidates.length === 0) throw new Error("인식 실패. 다시 찍어주세요.");
 
             const text = data.candidates[0].content.parts[0].text;
             fillForm(JSON.parse(text.replace(/```json|```/g, '').trim()));
@@ -204,5 +344,8 @@
             if(confirm('모든 기록 삭제?')) { localStorage.removeItem('foodLog'); renderList(); calculateStats(); }
         }
 
+        // 앱 시작 시 자동 실행
         loadApiKey(); renderList(); calculateStats();
     </script>
+</body>
+</html>
