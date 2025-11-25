@@ -176,7 +176,7 @@
             document.getElementById('apiKeyStatus').classList.add('hidden');
         }
 
-        // --- 3. 이미지 압축 및 분석 (429 에러 방지용) ---
+        // --- 3. 이미지 압축 및 분석 ---
         async function handleImageUpload(event) {
             const file = event.target.files[0];
             if (!file) return;
@@ -208,7 +208,7 @@
                     img.src = event.target.result;
                     img.onload = () => {
                         const canvas = document.createElement('canvas');
-                        // 429 에러 방지를 위해 해상도를 700px로 제한
+                        // 해상도 700px 제한 (용량 최적화)
                         const maxWidth = 700; 
                         let width = img.width; 
                         let height = img.height;
@@ -236,7 +236,8 @@
             const apiKey = localStorage.getItem('geminiApiKey');
             if (!apiKey) throw new Error("API 키가 없습니다.");
             
-            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+            // [수정된 부분] 모델 이름을 'gemini-1.5-flash'에서 'gemini-1.5-flash-latest'로 변경
+            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${apiKey}`;
             
             const prompt = `Extract nutrition facts (Korean labels). Return JSON ONLY: foodName, kcal, sodium, carbo, sugar, fat, protein (all numbers).`;
             
