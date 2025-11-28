@@ -3,171 +3,223 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>AI 영양 기록장 (진단모드)</title>
+    <title>AI 영양 기록장 & 분석기</title>
     <style>
-        :root { --primary: #4CAF50; --bg: #f8f9fa; --text: #333; --card-bg: #ffffff; }
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; margin: 0; padding: 15px; background: var(--bg); color: var(--text); -webkit-tap-highlight-color: transparent; }
-        h1 { text-align: center; font-size: 1.5rem; margin-bottom: 20px; color: #2c3e50; }
+        :root { --primary: #4CAF50; --danger: #ff4d4d; --info: #2196F3; --bg: #f8f9fa; --card-bg: #ffffff; }
+        
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; margin: 0; padding: 15px; background: var(--bg); color: #333; -webkit-tap-highlight-color: transparent; padding-bottom: 80px; }
+        h1 { text-align: center; font-size: 1.3rem; margin-bottom: 15px; color: #2c3e50; }
+        
         .card { background: var(--card-bg); padding: 20px; border-radius: 16px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); margin-bottom: 20px; }
-        label { display: block; margin-top: 12px; font-weight: 600; font-size: 0.9rem; color: #555; }
-        input, select { width: 100%; padding: 12px; margin-top: 6px; border: 1px solid #e0e0e0; border-radius: 8px; font-size: 16px; box-sizing: border-box; background: #fafafa; }
-        .btn { width: 100%; padding: 14px; background: var(--primary); color: white; border: none; border-radius: 10px; font-size: 1rem; font-weight: bold; cursor: pointer; margin-top: 20px; }
-        .btn-check { background: #2196F3; margin-top: 10px; }
-        .btn-secondary { background: #7f8c8d; } 
-        .btn-danger { background: #ff6b6b; width: auto; padding: 8px 12px; font-size: 0.9rem; float: right;}
-        .loader { display: none; text-align: center; margin: 15px 0; color: var(--primary); font-weight: bold; }
-        .hidden { display: none; }
-        .food-item { background: #fff; border: 1px solid #eee; border-radius: 12px; padding: 15px; margin-bottom: 10px; }
-        .file-upload-wrapper { position: relative; margin-top: 10px; border: 2px dashed #ccc; border-radius: 12px; padding: 20px; text-align: center; background: #fff; }
-        .file-upload-wrapper input { position: absolute; top: 0; left: 0; width: 100%; height: 100%; opacity: 0; }
+        
+        /* 탭 스타일 */
+        .tab-container { display: flex; justify-content: space-around; margin-bottom: 20px; background: #fff; border-radius: 12px; padding: 5px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+        .tab-btn { flex: 1; padding: 12px; border: none; background: transparent; font-weight: bold; color: #888; border-radius: 8px; cursor: pointer; transition: 0.2s; }
+        .tab-btn.active { background: var(--primary); color: white; box-shadow: 0 2px 6px rgba(76, 175, 80, 0.4); }
+        
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+
+        /* 입력 폼 스타일 */
+        label { display: block; margin-top: 10px; font-weight: 600; font-size: 0.85rem; color: #555; }
+        input, select { width: 100%; padding: 12px; margin-top: 5px; border: 1px solid #e0e0e0; border-radius: 8px; font-size: 16px; box-sizing: border-box; background: #fafafa; }
+        .btn { width: 100%; padding: 14px; background: var(--primary); color: white; border: none; border-radius: 10px; font-size: 1rem; font-weight: bold; cursor: pointer; margin-top: 15px; }
+        .btn-check { background: var(--info); margin-top: 10px; }
+        .btn-secondary { background: #7f8c8d; }
+        
+        /* 차트(Progress Bar) 스타일 */
+        .chart-row { margin-bottom: 20px; }
+        .chart-header { display: flex; justify-content: space-between; font-size: 0.9rem; margin-bottom: 5px; }
+        .progress-bg { background: #eee; height: 12px; border-radius: 6px; overflow: hidden; position: relative; }
+        .progress-fill { height: 100%; background: var(--primary); width: 0%; transition: width 0.5s ease-in-out; border-radius: 6px; }
+        .progress-fill.over { background: var(--danger); }
+        .chart-val { font-size: 0.8rem; color: #666; text-align: right; margin-top: 3px; }
+
+        /* 리스트 아이템 & 버튼 */
+        .food-item { background: #fff; border: 1px solid #eee; border-radius: 12px; padding: 15px; margin-bottom: 10px; position: relative; padding-right: 90px; } /* 버튼 공간 확보 */
+        .btn-group { position: absolute; top: 15px; right: 10px; display: flex; gap: 5px; }
+        .mini-btn { border: none; padding: 6px 10px; border-radius: 6px; font-size: 0.8rem; cursor: pointer; color: white; }
+        .btn-copy { background: var(--info); }
+        .btn-del { background: #ff4d4d; }
+
+        /* 기타 유틸 */
         .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-        /* 통계 테이블 */
-        .stats-table { width: 100%; border-collapse: collapse; font-size: 0.9rem; text-align: center; }
-        .stats-table th { background: #eee; padding: 8px; }
-        .stats-table td { border-bottom: 1px solid #eee; padding: 8px; }
+        .loader { display: none; text-align: center; margin: 15px 0; color: var(--primary); }
+        .hidden { display: none; }
+        .file-upload-wrapper { border: 2px dashed #ccc; border-radius: 12px; padding: 20px; text-align: center; margin-top: 10px; position: relative; }
+        .file-upload-wrapper input { position: absolute; top:0; left:0; width:100%; height:100%; opacity:0; }
     </style>
 </head>
 <body>
 
-    <h1>🥗 영양 기록장 (진단용)</h1>
+    <h1>🥗 AI 영양 매니저</h1>
+
+    <div class="tab-container">
+        <button class="tab-btn active" onclick="switchTab('record')">📝 기록하기</button>
+        <button class="tab-btn" onclick="switchTab('analysis')">📊 분석/목표</button>
+    </div>
 
     <div class="card" id="apiKeyCard">
-        <label>🔑 Gemini API Key</label>
-        <input type="password" id="apiKey" placeholder="AI Studio 키 입력">
-        
-        <label>🤖 모델 이름 직접 입력</label>
-        <input type="text" id="modelName" value="gemini-1.5-flash" placeholder="예: gemini-1.5-flash">
-        <p style="font-size:12px; color:#666;">계속 에러가 나면 아래 파란 버튼을 눌러보세요.</p>
-
-        <button class="btn btn-check" onclick="checkAvailableModels()">📡 내 키로 쓸 수 있는 모델 확인하기</button>
-        <button class="btn" onclick="saveApiKey()">설정 저장 및 닫기</button>
-    </div>
-    
-    <div id="apiKeyStatus" class="card hidden" style="background: #e8f5e9;">
-        <span style="color:green; font-weight:bold;">✅ 설정됨:</span> <span id="currentModelDisplay"></span>
-        <button onclick="resetApiKey()" style="background:none; border:none; text-decoration:underline; margin-left:10px;">변경</button>
+        <details>
+            <summary style="cursor:pointer; font-weight:bold;">⚙️ API 설정 및 모델 선택 (열기)</summary>
+            <label>🔑 API Key</label>
+            <input type="password" id="apiKey" placeholder="AI Studio 키 입력">
+            <label>🤖 모델명</label>
+            <input type="text" id="modelName" value="gemini-1.5-flash">
+            <button class="btn btn-check" onclick="checkAvailableModels()">📡 모델 확인</button>
+            <button class="btn" onclick="saveApiKey()">설정 저장</button>
+        </details>
+        <div id="apiKeyStatus" class="hidden" style="margin-top:10px; color:green; font-weight:bold; font-size:0.9rem;">✅ API 키 설정됨</div>
     </div>
 
-    <div class="card">
-        <h3>📅 기간별 분석</h3>
-        <div class="grid-2"><input type="date" id="startDate"><input type="date" id="endDate"></div>
-        <button class="btn btn-secondary" onclick="calculateStats()" style="margin-top:10px;">조회</button>
-        <div id="statsResult" style="margin-top:15px;"></div>
-    </div>
-
-    <div class="card">
-        <h3>📝 음식 추가</h3>
-        <div class="file-upload-wrapper">
-            <span>📸 사진 찍기</span>
-            <input type="file" id="imageInput" accept="image/*">
+    <div id="tab-record" class="tab-content active">
+        <div class="card">
+            <h3>📸 음식 추가</h3>
+            <div class="file-upload-wrapper">
+                <span>사진 찍기 / 업로드</span>
+                <input type="file" id="imageInput" accept="image/*">
+            </div>
+            <div id="ocrLoader" class="loader">🔄 분석 중...</div>
+            
+            <label>날짜</label><input type="date" id="entryDate">
+            <label>제품명</label><input type="text" id="foodName">
+            <div class="grid-2">
+                <input type="number" id="kcal" placeholder="칼로리 (kcal)">
+                <input type="number" id="protein" placeholder="단백질 (g)">
+                <input type="number" id="carbo" placeholder="탄수화물 (g)">
+                <input type="number" id="fat" placeholder="지방 (g)">
+                <input type="number" id="sugar" placeholder="당류 (g)">
+                <input type="number" id="sodium" placeholder="나트륨 (mg)">
+            </div>
+            <button class="btn" onclick="addFood()">기록 저장</button>
         </div>
-        <div id="ocrLoader" class="loader">🔄 분석 중...</div>
-        
-        <label>제품명</label><input type="text" id="foodName">
-        <label>날짜</label><input type="date" id="entryDate">
-        <div class="grid-2">
-            <input type="number" id="kcal" placeholder="칼로리">
-            <input type="number" id="sodium" placeholder="나트륨">
-            <input type="number" id="carbo" placeholder="탄수화물">
-            <input type="number" id="sugar" placeholder="당류">
-            <input type="number" id="fat" placeholder="지방">
-            <input type="number" id="protein" placeholder="단백질">
+
+        <div class="card">
+            <h3>📋 최근 기록</h3>
+            <div id="foodList"></div>
+            <button class="btn" style="background:#ff4d4d; margin-top:20px;" onclick="clearAll()">전체 초기화</button>
         </div>
-        <button class="btn" onclick="addFood()">저장</button>
     </div>
 
-    <div class="card">
-        <h3>기록 <button class="btn-danger" onclick="clearAll()">초기화</button></h3>
-        <div id="foodList"></div>
+    <div id="tab-analysis" class="tab-content">
+        <div class="card">
+            <h3>🎯 1일 목표 설정 (인바디 기준)</h3>
+            <div class="grid-2">
+                <div><label>목표 칼로리</label><input type="number" id="targetKcal" placeholder="2000"></div>
+                <div><label>목표 단백질</label><input type="number" id="targetProtein" placeholder="60"></div>
+                <div><label>목표 탄수화물</label><input type="number" id="targetCarbo" placeholder="300"></div>
+                <div><label>목표 지방</label><input type="number" id="targetFat" placeholder="50"></div>
+            </div>
+            <button class="btn btn-secondary" onclick="saveTargets()">목표 저장하기</button>
+        </div>
+
+        <div class="card">
+            <h3>📊 일일 섭취 달성률</h3>
+            <label>분석할 날짜 선택</label>
+            <input type="date" id="analysisDate" onchange="updateAnalysis()">
+            
+            <div style="margin-top:25px;">
+                <div class="chart-row">
+                    <div class="chart-header"><span>🔥 칼로리</span><span id="txt-kcal">0 / 0 kcal</span></div>
+                    <div class="progress-bg"><div class="progress-fill" id="bar-kcal"></div></div>
+                    <div class="chart-val" id="pct-kcal">0%</div>
+                </div>
+                <div class="chart-row">
+                    <div class="chart-header"><span>💪 단백질</span><span id="txt-protein">0 / 0 g</span></div>
+                    <div class="progress-bg"><div class="progress-fill" id="bar-protein"></div></div>
+                    <div class="chart-val" id="pct-protein">0%</div>
+                </div>
+                <div class="chart-row">
+                    <div class="chart-header"><span>🍚 탄수화물</span><span id="txt-carbo">0 / 0 g</span></div>
+                    <div class="progress-bg"><div class="progress-fill" id="bar-carbo"></div></div>
+                    <div class="chart-val" id="pct-carbo">0%</div>
+                </div>
+                <div class="chart-row">
+                    <div class="chart-header"><span>💧 지방</span><span id="txt-fat">0 / 0 g</span></div>
+                    <div class="progress-bg"><div class="progress-fill" id="bar-fat"></div></div>
+                    <div class="chart-val" id="pct-fat">0%</div>
+                </div>
+            </div>
+        </div>
     </div>
 
     <script>
-        // 날짜 유틸
+        // --- 0. 공통 유틸 및 초기화 ---
         const getToday = () => new Date().toISOString().split('T')[0];
         document.getElementById('entryDate').value = getToday();
-        document.getElementById('startDate').value = getToday();
-        document.getElementById('endDate').value = getToday();
+        document.getElementById('analysisDate').value = getToday();
 
-        // 1. 설정 관리
+        function switchTab(tabName) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+            document.getElementById(`tab-${tabName}`).classList.add('active');
+            event.target.classList.add('active');
+            if(tabName === 'analysis') updateAnalysis();
+        }
+
+        // --- 1. 설정 및 API 관리 ---
         function loadSettings() {
             const key = localStorage.getItem('geminiApiKey');
             const model = localStorage.getItem('geminiModel') || 'gemini-1.5-flash';
+            const targets = JSON.parse(localStorage.getItem('nutritionTargets')) || {k:2000, p:60, c:300, f:50};
+            document.getElementById('targetKcal').value = targets.k;
+            document.getElementById('targetProtein').value = targets.p;
+            document.getElementById('targetCarbo').value = targets.c;
+            document.getElementById('targetFat').value = targets.f;
+
             if (key) {
                 document.getElementById('apiKey').value = key;
                 document.getElementById('modelName').value = model;
-                document.getElementById('currentModelDisplay').innerText = model;
-                document.getElementById('apiKeyCard').classList.add('hidden');
                 document.getElementById('apiKeyStatus').classList.remove('hidden');
             }
         }
         function saveApiKey() {
             const key = document.getElementById('apiKey').value.trim();
             const model = document.getElementById('modelName').value.trim();
-            if (!key) return alert("API 키를 입력하세요.");
+            if (!key) return alert("키를 입력하세요.");
             localStorage.setItem('geminiApiKey', key);
             localStorage.setItem('geminiModel', model);
             loadSettings();
+            alert("설정 저장 완료");
         }
-        function resetApiKey() {
-            document.getElementById('apiKeyCard').classList.remove('hidden');
-            document.getElementById('apiKeyStatus').classList.add('hidden');
+        function saveTargets() {
+            const targets = {
+                k: Number(document.getElementById('targetKcal').value) || 2000,
+                p: Number(document.getElementById('targetProtein').value) || 60,
+                c: Number(document.getElementById('targetCarbo').value) || 300,
+                f: Number(document.getElementById('targetFat').value) || 50
+            };
+            localStorage.setItem('nutritionTargets', JSON.stringify(targets));
+            alert("목표가 저장되었습니다.");
+            updateAnalysis();
         }
-
-        // 2. [진단 기능] 사용 가능한 모델 목록 조회
         async function checkAvailableModels() {
             const key = document.getElementById('apiKey').value.trim();
             if(!key) return alert("API 키를 먼저 입력하세요.");
-            
-            // v1beta 엔드포인트에서 모델 리스트 조회
             const url = `https://generativelanguage.googleapis.com/v1beta/models?key=${key}`;
-            
             try {
-                alert("🔍 구글 서버에 문의 중...");
+                alert("조회 중...");
                 const res = await fetch(url);
                 const data = await res.json();
-                
                 if (data.error) throw new Error(data.error.message);
-                
-                // 사용 가능한 모델 중 'generateContent'를 지원하는 것만 필터링
-                const models = data.models
-                    .filter(m => m.supportedGenerationMethods.includes("generateContent"))
-                    .map(m => m.name.replace("models/", "")); // "models/gemini-pro" -> "gemini-pro"
-                
-                let msg = "✅ 사용 가능한 모델 목록:\n\n" + models.join("\n");
-                msg += "\n\n이 중 하나를 복사해서 '모델 이름' 칸에 넣으세요. (추천: gemini-1.5-flash)";
-                
-                alert(msg);
-                
-                // 가장 최신 모델 자동 입력 시도
-                if(models.includes('gemini-1.5-flash')) {
-                    document.getElementById('modelName').value = 'gemini-1.5-flash';
-                } else if (models.length > 0) {
-                    document.getElementById('modelName').value = models[0];
-                }
-
-            } catch (e) {
-                alert("❌ 모델 목록을 가져올 수 없습니다. API 키가 잘못되었거나 구글 클라우드 설정 문제입니다.\n에러: " + e.message);
-            }
+                const models = data.models.filter(m => m.supportedGenerationMethods.includes("generateContent")).map(m => m.name.replace("models/", ""));
+                alert("사용 가능 모델:\n" + models.join("\n"));
+                if(models.length > 0) document.getElementById('modelName').value = models[0];
+            } catch (e) { alert("에러: " + e.message); }
         }
 
-        // 3. 이미지 분석 (v1 Stable 사용)
+        // --- 2. 이미지 처리 ---
         async function handleImage(e) {
             const file = e.target.files[0];
             if (!file) return;
             const loader = document.getElementById('ocrLoader');
             loader.style.display = 'block';
-            
             try {
                 const base64 = await compressImage(file);
                 await callGemini(base64);
-            } catch (err) {
-                alert("실패: " + err.message);
-            } finally {
-                loader.style.display = 'none';
-                e.target.value = '';
-            }
+            } catch (err) { alert("분석 실패: " + err.message); } 
+            finally { loader.style.display = 'none'; e.target.value = ''; }
         }
-
         function compressImage(file) {
             return new Promise((resolve) => {
                 const reader = new FileReader();
@@ -187,87 +239,119 @@
                 }
             });
         }
-
         async function callGemini(base64) {
             const key = localStorage.getItem('geminiApiKey');
             const model = localStorage.getItem('geminiModel') || 'gemini-1.5-flash';
-            
-            // [중요] v1beta 대신 v1 사용 (안정성)
+            if(!key) throw new Error("API 키 없음");
             const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${key}`;
-            
             const req = { contents: [{ parts: [{ text: "Extract nutrition (korean). JSON keys: foodName, kcal, sodium, carbo, sugar, fat, protein. Values: numbers only." }, { inline_data: { mime_type: "image/jpeg", data: base64 } }] }] };
-
             const res = await fetch(url, { method: 'POST', body: JSON.stringify(req) });
             const data = await res.json();
-            
             if (!res.ok) throw new Error(data.error?.message || "서버 오류");
-            if (!data.candidates) throw new Error("인식 실패");
-
             const txt = data.candidates[0].content.parts[0].text.replace(/```json|```/g, '').trim();
             fill(JSON.parse(txt));
         }
-
         function fill(d) {
             document.getElementById('foodName').value = d.foodName || '';
-            ['kcal','sodium','carbo','sugar','fat','protein'].forEach(k => document.getElementById(k).value = d[k] || 0);
+            ['kcal','protein','carbo','fat','sugar','sodium'].forEach(k => document.getElementById(k).value = d[k] || 0);
         }
-
-        // 4. 데이터 CRUD
         document.getElementById('imageInput').addEventListener('change', handleImage);
 
+        // --- 3. 데이터 CRUD (복사 기능 추가됨) ---
         function addFood() {
             const getVal = id => Number(document.getElementById(id).value) || 0;
             const log = JSON.parse(localStorage.getItem('foodLog')) || [];
             log.push({
                 id: Date.now(),
                 dateStr: document.getElementById('entryDate').value,
-                name: document.getElementById('foodName').value,
-                kcal: getVal('kcal'), sodium: getVal('sodium'), carbo: getVal('carbo'), sugar: getVal('sugar'), fat: getVal('fat'), protein: getVal('protein')
+                name: document.getElementById('foodName').value || '이름 없음',
+                kcal: getVal('kcal'), protein: getVal('protein'), carbo: getVal('carbo'),
+                fat: getVal('fat'), sugar: getVal('sugar'), sodium: getVal('sodium')
             });
             localStorage.setItem('foodLog', JSON.stringify(log));
-            render();
+            renderList();
             document.getElementById('foodName').value = '';
             document.querySelectorAll('.grid-2 input').forEach(i => i.value = '');
         }
 
-        function render() {
+        function renderList() {
             const log = JSON.parse(localStorage.getItem('foodLog')) || [];
             const list = document.getElementById('foodList');
-            list.innerHTML = log.slice().reverse().slice(0,5).map(f => 
-                `<div class="food-item"><b>${f.name}</b> (${f.kcal}kcal)<br><small>${f.dateStr}</small> <button style="float:right; color:red; border:none; background:none;" onclick="del(${f.id})">삭제</button></div>`
+            list.innerHTML = log.slice().reverse().slice(0, 10).map(f => 
+                `<div class="food-item">
+                    <div class="btn-group">
+                        <button class="mini-btn btn-copy" onclick="copyFood(${f.id})">복사</button>
+                        <button class="mini-btn btn-del" onclick="del(${f.id})">삭제</button>
+                    </div>
+                    <b>${f.name}</b> (${f.kcal}kcal)<br>
+                    <small style="color:#888;">${f.dateStr} | 탄${f.carbo} 단${f.protein} 지${f.fat}</small>
+                </div>`
             ).join('');
+        }
+
+        // [신규 기능] 기존 음식 복사하기
+        function copyFood(id) {
+            const log = JSON.parse(localStorage.getItem('foodLog')) || [];
+            const target = log.find(f => f.id === id);
+            
+            if(!target) return alert("데이터를 찾을 수 없습니다.");
+
+            const today = new Date().toISOString().split('T')[0];
+            const newDate = prompt("이 음식을 언제 날짜로 등록할까요? (YYYY-MM-DD)", today);
+
+            if (newDate) {
+                // 기존 데이터(target)를 복사하되, ID와 날짜만 변경
+                const newFood = { 
+                    ...target, 
+                    id: Date.now(), 
+                    dateStr: newDate 
+                };
+                
+                log.push(newFood);
+                localStorage.setItem('foodLog', JSON.stringify(log));
+                renderList();
+                updateAnalysis();
+                alert(`"${target.name}"을(를) ${newDate}로 복사했습니다!`);
+            }
         }
         
         function del(id) {
             const log = JSON.parse(localStorage.getItem('foodLog')) || [];
             localStorage.setItem('foodLog', JSON.stringify(log.filter(f => f.id !== id)));
-            render();
+            renderList();
+            updateAnalysis();
         }
+        function clearAll() { if(confirm('모두 삭제하시겠습니까?')) { localStorage.removeItem('foodLog'); renderList(); updateAnalysis(); } }
 
-        function clearAll() {
-            if(confirm('삭제?')) { localStorage.removeItem('foodLog'); render(); }
-        }
-
-        // 통계 (간단 버전)
-        function calculateStats() {
+        // --- 4. 분석 기능 ---
+        function updateAnalysis() {
+            const targetDate = document.getElementById('analysisDate').value;
             const log = JSON.parse(localStorage.getItem('foodLog')) || [];
-            const s = document.getElementById('startDate').value;
-            const e = document.getElementById('endDate').value;
-            const filtered = log.filter(f => f.dateStr >= s && f.dateStr <= e);
-            
-            const stats = {};
-            filtered.forEach(f => {
-                if(!stats[f.dateStr]) stats[f.dateStr] = {k:0, c:0, p:0, f:0};
-                stats[f.dateStr].k += f.kcal; stats[f.dateStr].c += f.carbo;
-                stats[f.dateStr].p += f.protein; stats[f.dateStr].f += f.fat;
+            const targets = JSON.parse(localStorage.getItem('nutritionTargets')) || {k:2000, p:60, c:300, f:50};
+
+            let total = { k:0, p:0, c:0, f:0 };
+            log.filter(f => f.dateStr === targetDate).forEach(f => {
+                total.k += f.kcal; total.p += f.protein; total.c += f.carbo; total.f += f.fat;
             });
-            
-            const html = `<table class="stats-table"><tr><th>날짜</th><th>칼로리</th><th>탄/단/지</th></tr>` + 
-                Object.keys(stats).sort().map(d => `<tr><td>${d.substring(5)}</td><td>${stats[d].k}</td><td>${stats[d].c}/${stats[d].p}/${stats[d].f}</td></tr>`).join('') + `</table>`;
-            document.getElementById('statsResult').innerHTML = Object.keys(stats).length ? html : "기록 없음";
+
+            const drawBar = (type, current, target) => {
+                const pct = target > 0 ? Math.round((current / target) * 100) : 0;
+                const bar = document.getElementById(`bar-${type}`);
+                document.getElementById(`txt-${type}`).innerText = `${current} / ${target}`;
+                document.getElementById(`pct-${type}`).innerText = `${pct}% 달성`;
+                bar.style.width = `${Math.min(pct, 100)}%`;
+                if(pct > 100) bar.classList.add('over');
+                else bar.classList.remove('over');
+            };
+            drawBar('kcal', total.k, targets.k);
+            drawBar('protein', total.p, targets.p);
+            drawBar('carbo', total.c, targets.c);
+            drawBar('fat', total.f, targets.f);
         }
 
-        loadSettings(); render();
+        // 초기 실행
+        loadSettings();
+        renderList();
     </script>
 </body>
 </html>
