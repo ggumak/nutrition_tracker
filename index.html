@@ -3,18 +3,33 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>AI 영양 기록장 & 분석기</title>
-    <style>
-        :root { --primary: #4CAF50; --danger: #ff4d4d; --info: #2196F3; --bg: #f8f9fa; --card-bg: #ffffff; }
-        
-        /* [중요] 모든 요소의 크기 계산 방식을 변경 (가장 강력한 레이아웃 고정 방법) */
-        * { box-sizing: border-box; }
+    
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+    <meta http-equiv="Pragma" content="no-cache" />
+    <meta http-equiv="Expires" content="0" />
 
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; margin: 0; padding: 15px; background: var(--bg); color: #333; -webkit-tap-highlight-color: transparent; padding-bottom: 80px; }
+    <title>AI 영양 기록장</title>
+    <style>
+        :root { --primary: #4CAF50; --danger: #ff4d4d; --info: #2196F3; --warn: #ff9800; --bg: #f8f9fa; --card-bg: #ffffff; }
+        
+        /* 레이아웃 고정 (화면 깨짐 방지) */
+        *, *::before, *::after { box-sizing: border-box; }
+
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; 
+            margin: 0; padding: 15px; background: var(--bg); color: #333; 
+            -webkit-tap-highlight-color: transparent; padding-bottom: 80px; 
+        }
         h1 { text-align: center; font-size: 1.3rem; margin-bottom: 15px; color: #2c3e50; }
         
-        .card { background: var(--card-bg); padding: 20px; border-radius: 16px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); margin-bottom: 20px; width: 100%; }
+        /* 카드 스타일 */
+        .card { 
+            background: var(--card-bg); padding: 20px; border-radius: 16px; 
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05); margin-bottom: 20px; 
+            width: 100%; max-width: 100%; 
+        }
         
+        /* 탭 스타일 */
         .tab-container { display: flex; justify-content: space-around; margin-bottom: 20px; background: #fff; border-radius: 12px; padding: 5px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
         .tab-btn { flex: 1; padding: 12px; border: none; background: transparent; font-weight: bold; color: #888; border-radius: 8px; cursor: pointer; transition: 0.2s; }
         .tab-btn.active { background: var(--primary); color: white; box-shadow: 0 2px 6px rgba(76, 175, 80, 0.4); }
@@ -23,21 +38,16 @@
 
         label { display: block; margin-top: 10px; font-weight: 600; font-size: 0.85rem; color: #555; }
         
-        /* [수정] 입력창 스타일 강화 (최대 너비 100% 제한) */
+        /* 입력창 스타일 */
         input, select { 
-            width: 100%; 
-            max-width: 100%; /* 부모를 절대 넘지 못하게 함 */
-            padding: 12px; 
-            margin-top: 5px; 
-            border: 1px solid #e0e0e0; 
-            border-radius: 8px; 
-            font-size: 16px; 
-            background: #fafafa; 
+            width: 100%; max-width: 100%; padding: 12px; margin-top: 5px; 
+            border: 1px solid #e0e0e0; border-radius: 8px; font-size: 16px; background: #fafafa; 
         }
 
         .btn { width: 100%; padding: 14px; background: var(--primary); color: white; border: none; border-radius: 10px; font-size: 1rem; font-weight: bold; cursor: pointer; margin-top: 15px; }
         .btn-check { background: var(--info); margin-top: 10px; }
         .btn-secondary { background: #7f8c8d; }
+        .btn-backup { background: var(--warn); color: white; margin-top: 10px; } /* 백업 버튼용 */
         
         .chart-row { margin-bottom: 20px; }
         .chart-header { display: flex; justify-content: space-between; font-size: 0.9rem; margin-bottom: 5px; }
@@ -58,6 +68,8 @@
         .hidden { display: none; }
         .file-upload-wrapper { border: 2px dashed #ccc; border-radius: 12px; padding: 20px; text-align: center; margin-top: 10px; position: relative; }
         .file-upload-wrapper input { position: absolute; top:0; left:0; width:100%; height:100%; opacity:0; }
+
+        .version-tag { text-align: center; font-size: 0.8rem; color: #aaa; margin-top: 30px; padding: 10px; border-top: 1px solid #eee; }
     </style>
 </head>
 <body>
@@ -65,19 +77,7 @@
     <div class="tab-container">
         <button class="tab-btn active" onclick="switchTab('record')">📝 기록하기</button>
         <button class="tab-btn" onclick="switchTab('analysis')">📊 분석/목표</button>
-    </div>
-
-    <div class="card" id="apiKeyCard">
-        <details>
-            <summary style="cursor:pointer; font-weight:bold;">⚙️ API 설정 및 모델 선택 (열기)</summary>
-            <label>🔑 API Key</label>
-            <input type="password" id="apiKey" placeholder="AI Studio 키 입력">
-            <label>🤖 모델명</label>
-            <input type="text" id="modelName" value="gemini-1.5-flash">
-            <button class="btn btn-check" onclick="checkAvailableModels()">📡 모델 확인</button>
-            <button class="btn" onclick="saveApiKey()">설정 저장</button>
-        </details>
-        <div id="apiKeyStatus" class="hidden" style="margin-top:10px; color:green; font-weight:bold; font-size:0.9rem;">✅ API 키 설정됨</div>
+        <button class="tab-btn" onclick="switchTab('settings')">⚙️ 설정/백업</button>
     </div>
 
     <div id="tab-record" class="tab-content active">
@@ -110,16 +110,6 @@
 
     <div id="tab-analysis" class="tab-content">
         <div class="card">
-            <h3>🎯 1일 목표 설정</h3>
-            <div class="grid-2">
-                <div><label>목표 칼로리</label><input type="number" id="targetKcal" placeholder="2000"></div>
-                <div><label>목표 단백질</label><input type="number" id="targetProtein" placeholder="60"></div>
-                <div><label>목표 탄수화물</label><input type="number" id="targetCarbo" placeholder="300"></div>
-                <div><label>목표 지방</label><input type="number" id="targetFat" placeholder="50"></div>
-            </div>
-            <button class="btn btn-secondary" onclick="saveTargets()">목표 저장하기</button>
-        </div>
-        <div class="card">
             <h3>📊 일일 섭취 달성률</h3>
             <label>분석할 날짜 선택</label>
             <input type="date" id="analysisDate" onchange="updateAnalysis()">
@@ -135,6 +125,47 @@
             <div id="dailyFoodList"></div>
         </div>
     </div>
+
+    <div id="tab-settings" class="tab-content">
+        <div class="card" id="apiKeyCard">
+            <h3>🔑 API 키 설정</h3>
+            <label>Gemini API Key</label>
+            <input type="password" id="apiKey" placeholder="AI Studio 키 입력">
+            <label>모델명</label>
+            <input type="text" id="modelName" value="gemini-1.5-flash">
+            <button class="btn btn-check" onclick="checkAvailableModels()">📡 모델 확인</button>
+            <button class="btn" onclick="saveApiKey()">설정 저장</button>
+            <div id="apiKeyStatus" class="hidden" style="margin-top:10px; color:green; font-weight:bold;">✅ 설정됨</div>
+        </div>
+
+        <div class="card">
+            <h3>🎯 목표 설정</h3>
+            <div class="grid-2">
+                <div><label>목표 칼로리</label><input type="number" id="targetKcal"></div>
+                <div><label>목표 단백질</label><input type="number" id="targetProtein"></div>
+                <div><label>목표 탄수화물</label><input type="number" id="targetCarbo"></div>
+                <div><label>목표 지방</label><input type="number" id="targetFat"></div>
+            </div>
+            <button class="btn btn-secondary" onclick="saveTargets()">목표 저장</button>
+        </div>
+
+        <div class="card">
+            <h3>💾 데이터 백업 & 복구</h3>
+            <p style="font-size:0.85rem; color:#666; margin-bottom:15px;">
+                브라우저 청소를 하거나 기기를 변경할 때 데이터가 사라질 수 있습니다. 주기적으로 백업 파일을 다운로드해두세요.
+            </p>
+            
+            <button class="btn btn-backup" onclick="exportData()">📥 데이터 백업 (다운로드)</button>
+            
+            <hr style="margin:20px 0; border:0; border-top:1px solid #eee;">
+            
+            <label>📤 데이터 복구 (파일 선택)</label>
+            <input type="file" id="importFile" accept=".json" style="margin-bottom:10px;">
+            <button class="btn" onclick="importData()">복구하기</button>
+        </div>
+    </div>
+
+    <div class="version-tag">Ver 1.6 (Backup Added)</div>
 
     <script>
         const getToday = () => new Date().toISOString().split('T')[0];
@@ -180,7 +211,7 @@
                 f: Number(document.getElementById('targetFat').value) || 50
             };
             localStorage.setItem('nutritionTargets', JSON.stringify(targets));
-            alert("목표 저장됨"); updateAnalysis();
+            alert("목표 저장됨");
         }
         async function checkAvailableModels() {
             const key = document.getElementById('apiKey').value.trim();
@@ -195,6 +226,50 @@
                 if(models.length > 0) document.getElementById('modelName').value = models[0];
             } catch (e) { alert("에러: " + e.message); }
         }
+
+        // --- 백업 및 복구 기능 (신규) ---
+        function exportData() {
+            const data = {
+                foodLog: JSON.parse(localStorage.getItem('foodLog')) || [],
+                targets: JSON.parse(localStorage.getItem('nutritionTargets')) || {},
+                // API키는 보안상 백업하지 않는 것이 좋으나 편의를 위해 포함할지 선택 가능 (여기선 포함)
+                apiKey: localStorage.getItem('geminiApiKey'),
+                model: localStorage.getItem('geminiModel')
+            };
+            
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(data));
+            const downloadAnchorNode = document.createElement('a');
+            downloadAnchorNode.setAttribute("href", dataStr);
+            downloadAnchorNode.setAttribute("download", "nutrition_backup_" + getToday() + ".json");
+            document.body.appendChild(downloadAnchorNode);
+            downloadAnchorNode.click();
+            downloadAnchorNode.remove();
+        }
+
+        function importData() {
+            const input = document.getElementById('importFile');
+            if (!input.files.length) return alert("백업 파일(.json)을 선택해주세요.");
+            
+            const file = input.files[0];
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const data = JSON.parse(e.target.result);
+                    if(data.foodLog) localStorage.setItem('foodLog', JSON.stringify(data.foodLog));
+                    if(data.targets) localStorage.setItem('nutritionTargets', JSON.stringify(data.targets));
+                    if(data.apiKey) localStorage.setItem('geminiApiKey', data.apiKey);
+                    if(data.model) localStorage.setItem('geminiModel', data.model);
+                    
+                    alert("복구가 완료되었습니다! 새로고침합니다.");
+                    location.reload();
+                } catch(err) {
+                    alert("잘못된 파일 형식이거나 손상된 파일입니다.");
+                }
+            };
+            reader.readAsText(file);
+        }
+
+        // --- 이미지 및 데이터 처리 ---
         async function handleImage(e) {
             const file = e.target.files[0];
             if (!file) return;
