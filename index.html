@@ -20,9 +20,11 @@
         .tab-content { display: none; }
         .tab-content.active { display: block; }
 
-        /* 입력 폼 스타일 */
+        /* 입력 폼 스타일 - 날짜 레이아웃 수정됨 */
         label { display: block; margin-top: 10px; font-weight: 600; font-size: 0.85rem; color: #555; }
+        /* [수정됨] 모든 input과 select에 box-sizing을 적용하여 너비 초과 방지 */
         input, select { width: 100%; padding: 12px; margin-top: 5px; border: 1px solid #e0e0e0; border-radius: 8px; font-size: 16px; box-sizing: border-box; background: #fafafa; }
+        
         .btn { width: 100%; padding: 14px; background: var(--primary); color: white; border: none; border-radius: 10px; font-size: 1rem; font-weight: bold; cursor: pointer; margin-top: 15px; }
         .btn-check { background: var(--info); margin-top: 10px; }
         .btn-secondary { background: #7f8c8d; }
@@ -378,5 +380,3 @@
     </script>
 </body>
 </html>
-
-
