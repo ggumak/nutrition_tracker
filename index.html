@@ -7,29 +7,38 @@
     <style>
         :root { --primary: #4CAF50; --danger: #ff4d4d; --info: #2196F3; --bg: #f8f9fa; --card-bg: #ffffff; }
         
+        /* [중요] 모든 요소의 크기 계산 방식을 변경 (가장 강력한 레이아웃 고정 방법) */
+        * { box-sizing: border-box; }
+
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; margin: 0; padding: 15px; background: var(--bg); color: #333; -webkit-tap-highlight-color: transparent; padding-bottom: 80px; }
         h1 { text-align: center; font-size: 1.3rem; margin-bottom: 15px; color: #2c3e50; }
         
-        .card { background: var(--card-bg); padding: 20px; border-radius: 16px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); margin-bottom: 20px; }
+        .card { background: var(--card-bg); padding: 20px; border-radius: 16px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); margin-bottom: 20px; width: 100%; }
         
-        /* 탭 스타일 */
         .tab-container { display: flex; justify-content: space-around; margin-bottom: 20px; background: #fff; border-radius: 12px; padding: 5px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
         .tab-btn { flex: 1; padding: 12px; border: none; background: transparent; font-weight: bold; color: #888; border-radius: 8px; cursor: pointer; transition: 0.2s; }
         .tab-btn.active { background: var(--primary); color: white; box-shadow: 0 2px 6px rgba(76, 175, 80, 0.4); }
-        
         .tab-content { display: none; }
         .tab-content.active { display: block; }
 
-        /* 입력 폼 스타일 - 날짜 레이아웃 수정됨 */
         label { display: block; margin-top: 10px; font-weight: 600; font-size: 0.85rem; color: #555; }
-        /* [수정됨] 모든 input과 select에 box-sizing을 적용하여 너비 초과 방지 */
-        input, select { width: 100%; padding: 12px; margin-top: 5px; border: 1px solid #e0e0e0; border-radius: 8px; font-size: 16px; box-sizing: border-box; background: #fafafa; }
         
+        /* [수정] 입력창 스타일 강화 (최대 너비 100% 제한) */
+        input, select { 
+            width: 100%; 
+            max-width: 100%; /* 부모를 절대 넘지 못하게 함 */
+            padding: 12px; 
+            margin-top: 5px; 
+            border: 1px solid #e0e0e0; 
+            border-radius: 8px; 
+            font-size: 16px; 
+            background: #fafafa; 
+        }
+
         .btn { width: 100%; padding: 14px; background: var(--primary); color: white; border: none; border-radius: 10px; font-size: 1rem; font-weight: bold; cursor: pointer; margin-top: 15px; }
         .btn-check { background: var(--info); margin-top: 10px; }
         .btn-secondary { background: #7f8c8d; }
         
-        /* 차트(Progress Bar) 스타일 */
         .chart-row { margin-bottom: 20px; }
         .chart-header { display: flex; justify-content: space-between; font-size: 0.9rem; margin-bottom: 5px; }
         .progress-bg { background: #eee; height: 12px; border-radius: 6px; overflow: hidden; position: relative; }
@@ -37,7 +46,6 @@
         .progress-fill.over { background: var(--danger); }
         .chart-val { font-size: 0.8rem; color: #666; text-align: right; margin-top: 3px; }
 
-        /* 리스트 아이템 & 버튼 */
         .food-item { background: #fff; border: 1px solid #eee; border-radius: 12px; padding: 15px; margin-bottom: 10px; position: relative; padding-right: 90px; }
         .btn-group { position: absolute; top: 15px; right: 10px; display: flex; gap: 5px; }
         .mini-btn { border: none; padding: 6px 10px; border-radius: 6px; font-size: 0.8rem; cursor: pointer; color: white; }
@@ -45,7 +53,6 @@
         .btn-del { background: #ff4d4d; }
         .empty-msg { text-align: center; color: #999; padding: 20px; }
 
-        /* 기타 유틸 */
         .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
         .loader { display: none; text-align: center; margin: 15px 0; color: var(--primary); }
         .hidden { display: none; }
@@ -54,9 +61,7 @@
     </style>
 </head>
 <body>
-
     <h1>🥗 AI 영양 매니저</h1>
-
     <div class="tab-container">
         <button class="tab-btn active" onclick="switchTab('record')">📝 기록하기</button>
         <button class="tab-btn" onclick="switchTab('analysis')">📊 분석/목표</button>
@@ -96,7 +101,6 @@
             </div>
             <button class="btn" onclick="addFood()">기록 저장</button>
         </div>
-
         <div class="card">
             <h3>📋 전체 최근 기록 (10개)</h3>
             <div id="foodList"></div>
@@ -115,36 +119,17 @@
             </div>
             <button class="btn btn-secondary" onclick="saveTargets()">목표 저장하기</button>
         </div>
-
         <div class="card">
             <h3>📊 일일 섭취 달성률</h3>
             <label>분석할 날짜 선택</label>
             <input type="date" id="analysisDate" onchange="updateAnalysis()">
-            
             <div style="margin-top:25px;">
-                <div class="chart-row">
-                    <div class="chart-header"><span>🔥 칼로리</span><span id="txt-kcal">0 / 0 kcal</span></div>
-                    <div class="progress-bg"><div class="progress-fill" id="bar-kcal"></div></div>
-                    <div class="chart-val" id="pct-kcal">0%</div>
-                </div>
-                <div class="chart-row">
-                    <div class="chart-header"><span>💪 단백질</span><span id="txt-protein">0 / 0 g</span></div>
-                    <div class="progress-bg"><div class="progress-fill" id="bar-protein"></div></div>
-                    <div class="chart-val" id="pct-protein">0%</div>
-                </div>
-                <div class="chart-row">
-                    <div class="chart-header"><span>🍚 탄수화물</span><span id="txt-carbo">0 / 0 g</span></div>
-                    <div class="progress-bg"><div class="progress-fill" id="bar-carbo"></div></div>
-                    <div class="chart-val" id="pct-carbo">0%</div>
-                </div>
-                <div class="chart-row">
-                    <div class="chart-header"><span>💧 지방</span><span id="txt-fat">0 / 0 g</span></div>
-                    <div class="progress-bg"><div class="progress-fill" id="bar-fat"></div></div>
-                    <div class="chart-val" id="pct-fat">0%</div>
-                </div>
+                <div class="chart-row"><div class="chart-header"><span>🔥 칼로리</span><span id="txt-kcal">0/0</span></div><div class="progress-bg"><div class="progress-fill" id="bar-kcal"></div></div><div class="chart-val" id="pct-kcal">0%</div></div>
+                <div class="chart-row"><div class="chart-header"><span>💪 단백질</span><span id="txt-protein">0/0</span></div><div class="progress-bg"><div class="progress-fill" id="bar-protein"></div></div><div class="chart-val" id="pct-protein">0%</div></div>
+                <div class="chart-row"><div class="chart-header"><span>🍚 탄수화물</span><span id="txt-carbo">0/0</span></div><div class="progress-bg"><div class="progress-fill" id="bar-carbo"></div></div><div class="chart-val" id="pct-carbo">0%</div></div>
+                <div class="chart-row"><div class="chart-header"><span>💧 지방</span><span id="txt-fat">0/0</span></div><div class="progress-bg"><div class="progress-fill" id="bar-fat"></div></div><div class="chart-val" id="pct-fat">0%</div></div>
             </div>
         </div>
-
         <div class="card" style="border: 2px solid #e0e0e0;">
             <h3>🍽️ 해당 날짜 식단 내역</h3>
             <div id="dailyFoodList"></div>
@@ -152,7 +137,6 @@
     </div>
 
     <script>
-        // --- 0. 공통 유틸 및 초기화 ---
         const getToday = () => new Date().toISOString().split('T')[0];
         document.getElementById('entryDate').value = getToday();
         document.getElementById('analysisDate').value = getToday();
@@ -165,7 +149,6 @@
             if(tabName === 'analysis') updateAnalysis();
         }
 
-        // --- 1. 설정 및 API 관리 ---
         function loadSettings() {
             const key = localStorage.getItem('geminiApiKey');
             const model = localStorage.getItem('geminiModel') || 'gemini-1.5-flash';
@@ -174,7 +157,6 @@
             document.getElementById('targetProtein').value = targets.p;
             document.getElementById('targetCarbo').value = targets.c;
             document.getElementById('targetFat').value = targets.f;
-
             if (key) {
                 document.getElementById('apiKey').value = key;
                 document.getElementById('modelName').value = model;
@@ -198,16 +180,14 @@
                 f: Number(document.getElementById('targetFat').value) || 50
             };
             localStorage.setItem('nutritionTargets', JSON.stringify(targets));
-            alert("목표가 저장되었습니다.");
-            updateAnalysis();
+            alert("목표 저장됨"); updateAnalysis();
         }
         async function checkAvailableModels() {
             const key = document.getElementById('apiKey').value.trim();
-            if(!key) return alert("API 키를 먼저 입력하세요.");
-            const url = `https://generativelanguage.googleapis.com/v1beta/models?key=${key}`;
+            if(!key) return alert("API 키 필요");
             try {
                 alert("조회 중...");
-                const res = await fetch(url);
+                const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${key}`);
                 const data = await res.json();
                 if (data.error) throw new Error(data.error.message);
                 const models = data.models.filter(m => m.supportedGenerationMethods.includes("generateContent")).map(m => m.name.replace("models/", ""));
@@ -215,8 +195,6 @@
                 if(models.length > 0) document.getElementById('modelName').value = models[0];
             } catch (e) { alert("에러: " + e.message); }
         }
-
-        // --- 2. 이미지 처리 ---
         async function handleImage(e) {
             const file = e.target.files[0];
             if (!file) return;
@@ -251,9 +229,9 @@
             const key = localStorage.getItem('geminiApiKey');
             const model = localStorage.getItem('geminiModel') || 'gemini-1.5-flash';
             if(!key) throw new Error("API 키 없음");
-            const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${key}`;
-            const req = { contents: [{ parts: [{ text: "Extract nutrition (korean). JSON keys: foodName, kcal, sodium, carbo, sugar, fat, protein. Values: numbers only." }, { inline_data: { mime_type: "image/jpeg", data: base64 } }] }] };
-            const res = await fetch(url, { method: 'POST', body: JSON.stringify(req) });
+            const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${key}`, { 
+                method: 'POST', body: JSON.stringify({ contents: [{ parts: [{ text: "Extract nutrition (korean). JSON keys: foodName, kcal, sodium, carbo, sugar, fat, protein. Values: numbers only." }, { inline_data: { mime_type: "image/jpeg", data: base64 } }] }] }) 
+            });
             const data = await res.json();
             if (!res.ok) throw new Error(data.error?.message || "서버 오류");
             const txt = data.candidates[0].content.parts[0].text.replace(/```json|```/g, '').trim();
@@ -264,8 +242,6 @@
             ['kcal','protein','carbo','fat','sugar','sodium'].forEach(k => document.getElementById(k).value = d[k] || 0);
         }
         document.getElementById('imageInput').addEventListener('change', handleImage);
-
-        // --- 3. 데이터 CRUD ---
         function addFood() {
             const getVal = id => Number(document.getElementById(id).value) || 0;
             const log = JSON.parse(localStorage.getItem('foodLog')) || [];
@@ -282,101 +258,57 @@
             document.querySelectorAll('.grid-2 input').forEach(i => i.value = '');
             alert("저장되었습니다!");
         }
-
-        // 메인 탭의 최근 리스트 렌더링
         function renderList() {
             const log = JSON.parse(localStorage.getItem('foodLog')) || [];
             const list = document.getElementById('foodList');
-            // 최근 10개만 표시
             list.innerHTML = log.slice().reverse().slice(0, 10).map(f => 
                 `<div class="food-item">
-                    <div class="btn-group">
-                        <button class="mini-btn btn-copy" onclick="copyFood(${f.id})">복사</button>
-                        <button class="mini-btn btn-del" onclick="del(${f.id})">삭제</button>
-                    </div>
-                    <b>${f.name}</b> (${f.kcal}kcal)<br>
-                    <small style="color:#888;">${f.dateStr} | 탄${f.carbo} 단${f.protein} 지${f.fat}</small>
+                    <div class="btn-group"><button class="mini-btn btn-copy" onclick="copyFood(${f.id})">복사</button><button class="mini-btn btn-del" onclick="del(${f.id})">삭제</button></div>
+                    <b>${f.name}</b> (${f.kcal}kcal)<br><small style="color:#888;">${f.dateStr} | 탄${f.carbo} 단${f.protein} 지${f.fat}</small>
                 </div>`
             ).join('');
         }
-
         function copyFood(id) {
             const log = JSON.parse(localStorage.getItem('foodLog')) || [];
             const target = log.find(f => f.id === id);
             if(!target) return alert("데이터 없음");
-
-            const today = new Date().toISOString().split('T')[0];
-            const newDate = prompt("복사할 날짜를 입력하세요 (YYYY-MM-DD)", today);
+            const newDate = prompt("복사할 날짜 (YYYY-MM-DD)", new Date().toISOString().split('T')[0]);
             if (newDate) {
-                const newFood = { ...target, id: Date.now(), dateStr: newDate };
-                log.push(newFood);
+                log.push({ ...target, id: Date.now(), dateStr: newDate });
                 localStorage.setItem('foodLog', JSON.stringify(log));
-                renderList();
-                updateAnalysis();
-                alert(`"${target.name}" 복사 완료!`);
+                renderList(); updateAnalysis(); alert("복사 완료!");
             }
         }
-        
         function del(id) {
-            if(!confirm("정말 삭제하시겠습니까?")) return;
+            if(!confirm("삭제하시겠습니까?")) return;
             const log = JSON.parse(localStorage.getItem('foodLog')) || [];
             localStorage.setItem('foodLog', JSON.stringify(log.filter(f => f.id !== id)));
-            renderList();
-            updateAnalysis();
+            renderList(); updateAnalysis();
         }
-        function clearAll() { if(confirm('모두 삭제하시겠습니까?')) { localStorage.removeItem('foodLog'); renderList(); updateAnalysis(); } }
-
-        // --- 4. 분석 기능 (상세 리스트 기능 추가) ---
+        function clearAll() { if(confirm('전체 삭제?')) { localStorage.removeItem('foodLog'); renderList(); updateAnalysis(); } }
         function updateAnalysis() {
             const targetDate = document.getElementById('analysisDate').value;
             const log = JSON.parse(localStorage.getItem('foodLog')) || [];
             const targets = JSON.parse(localStorage.getItem('nutritionTargets')) || {k:2000, p:60, c:300, f:50};
-
-            // 1. 해당 날짜 데이터 필터링
             const dailyFoods = log.filter(f => f.dateStr === targetDate);
-
-            // 2. 합계 계산
             let total = { k:0, p:0, c:0, f:0 };
-            dailyFoods.forEach(f => {
-                total.k += f.kcal; total.p += f.protein; total.c += f.carbo; total.f += f.fat;
-            });
-
-            // 3. 차트 그리기
-            const drawBar = (type, current, target) => {
-                const pct = target > 0 ? Math.round((current / target) * 100) : 0;
+            dailyFoods.forEach(f => { total.k += f.kcal; total.p += f.protein; total.c += f.carbo; total.f += f.fat; });
+            const drawBar = (type, cur, tar) => {
+                const pct = tar > 0 ? Math.round((cur / tar) * 100) : 0;
                 const bar = document.getElementById(`bar-${type}`);
-                document.getElementById(`txt-${type}`).innerText = `${current} / ${target}`;
-                document.getElementById(`pct-${type}`).innerText = `${pct}% 달성`;
+                document.getElementById(`txt-${type}`).innerText = `${cur}/${tar}`;
+                document.getElementById(`pct-${type}`).innerText = `${pct}%`;
                 bar.style.width = `${Math.min(pct, 100)}%`;
-                if(pct > 100) bar.classList.add('over'); else bar.classList.remove('over');
+                bar.className = pct > 100 ? 'progress-fill over' : 'progress-fill';
             };
-            drawBar('kcal', total.k, targets.k);
-            drawBar('protein', total.p, targets.p);
-            drawBar('carbo', total.c, targets.c);
-            drawBar('fat', total.f, targets.f);
-
-            // 4. [NEW] 해당 날짜 리스트 렌더링
+            drawBar('kcal', total.k, targets.k); drawBar('protein', total.p, targets.p);
+            drawBar('carbo', total.c, targets.c); drawBar('fat', total.f, targets.f);
             const dailyList = document.getElementById('dailyFoodList');
-            if (dailyFoods.length === 0) {
-                dailyList.innerHTML = '<div class="empty-msg">기록이 없습니다.</div>';
-            } else {
-                // 기존 리스트와 똑같은 디자인 사용 (복사/삭제 버튼 포함)
-                dailyList.innerHTML = dailyFoods.reverse().map(f => 
-                    `<div class="food-item">
-                        <div class="btn-group">
-                            <button class="mini-btn btn-copy" onclick="copyFood(${f.id})">복사</button>
-                            <button class="mini-btn btn-del" onclick="del(${f.id})">삭제</button>
-                        </div>
-                        <b>${f.name}</b> (${f.kcal}kcal)<br>
-                        <small style="color:#888;">탄${f.carbo} 단${f.protein} 지${f.fat}</small>
-                    </div>`
-                ).join('');
-            }
+            dailyList.innerHTML = dailyFoods.length ? dailyFoods.reverse().map(f => 
+                `<div class="food-item"><div class="btn-group"><button class="mini-btn btn-copy" onclick="copyFood(${f.id})">복사</button><button class="mini-btn btn-del" onclick="del(${f.id})">삭제</button></div><b>${f.name}</b> (${f.kcal}kcal)<br><small style="color:#888;">탄${f.carbo} 단${f.protein} 지${f.fat}</small></div>`
+            ).join('') : '<div class="empty-msg">기록 없음</div>';
         }
-
-        // 초기 실행
-        loadSettings();
-        renderList();
+        loadSettings(); renderList();
     </script>
 </body>
 </html>
