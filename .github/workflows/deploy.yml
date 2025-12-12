@@ -16,7 +16,7 @@ concurrency:
 
 jobs:
   # [1단계] 코드 검사 (테스트)
-  check-quality:
+  test-suite:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code (코드 가져오기)
